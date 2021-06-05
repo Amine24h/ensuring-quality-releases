@@ -14,6 +14,12 @@ stages:
     #     knownHostsEntry: 'KNOWN_HOSTS_STRING'
     #     sshPublicKey: 'PUBLIC_KEY'
     #     sshKeySecureFile: 'id_rsa'
+    - task: TerraformInstaller@0
+      displayName: install Terraform v0.15.4
+      inputs:
+        terraformVersion: '0.15.4'
+    - bash: terraform apply
+      displayName: Terraform Apply
     - task: ArchiveFiles@2
       displayName: 'Archive FakeRestAPI'
       inputs:
@@ -24,6 +30,17 @@ stages:
     - publish: $(Build.ArtifactStagingDirectory)/$(Build.BuildId)-fakerestapi.zip
       displayName: 'Upload Package'
       artifact: drop-fakerestapi
+    - task: CmdLine@2
+      displayName: Install newman
+      inputs:
+        script: 'sudo npm install -g newman'
+        workingDirectory: $(System.DefaultWorkingDirectory)
+    - task: CmdLine@2
+      displayName: Run newman api test
+      continueOnError: true
+      inputs:
+        script: 'newman run StarterAPIs.json'
+        workingDirectory: '$(System.DefaultWorkingDirectory)/automatedtesting/postman'
 - stage:
   jobs:
   - deployment: FakeRestAPI
