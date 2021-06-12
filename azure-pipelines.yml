@@ -117,8 +117,6 @@ stages:
                 chromium-browser --version
                 chromedriver --version
 
-                #export PATH=$PATH:some/path
-
 - stage: Test
   jobs:
   - job: NewmanTests
@@ -164,7 +162,7 @@ stages:
                 unzip -o automatedtest-$(Build.BuildId).zip
                 cd selenium
 
-                python3 login.py
+                python3 add-products.py 2>&1 | tee selenium-log.log
   - deployment: JMeterTests
     environment:
       name:  'TEST'
