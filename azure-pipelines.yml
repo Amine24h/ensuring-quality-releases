@@ -129,10 +129,16 @@ stages:
           script: 'sudo npm install -g newman'
           workingDirectory: $(System.DefaultWorkingDirectory)
       - task: CmdLine@2
-        displayName: Run newman api test
+        displayName: Run newman api regression test
         continueOnError: true
         inputs:
-          script: 'newman run regression-validation-test-suite.postman_collection.json -e regression-validation-test-environment.postman_environment.json --reporters cli,junit --reporter-junit-export log/regression-validation-test.xml --suppress-exit-code'
+          script: 'newman run regression-test-suite.postman_collection.json -e regression-validation-test-environment.postman_environment.json --reporters cli,junit --reporter-junit-export log/regression-test.xml --suppress-exit-code'
+          workingDirectory: '$(System.DefaultWorkingDirectory)/automatedtesting/postman'
+      - task: CmdLine@2
+        displayName: Run newman api validation test
+        continueOnError: true
+        inputs:
+          script: 'newman run validation-test-suite.postman_collection.json -e regression-validation-test-environment.postman_environment.json --reporters cli,junit --reporter-junit-export log/validation-test.xml --suppress-exit-code'
           workingDirectory: '$(System.DefaultWorkingDirectory)/automatedtesting/postman'
       - task: PublishTestResults@2
         displayName: 'Publish Newman test results'
@@ -152,8 +158,8 @@ stages:
         deploy:
           steps:
           - task: Bash@3
+            displayName: AddProductsTest
             inputs:
-              displayName: SeleniumTest
               targetType: 'inline'
               script: |
                 #! /bin/bash
@@ -162,7 +168,7 @@ stages:
                 unzip -o automatedtest-$(Build.BuildId).zip
                 cd selenium
 
-                python3 add-products.py 2>&1 | tee selenium-log.log
+                python3 add-products.py 2>&1 | sudo tee -a /var/log/selenium-log.log
   - deployment: JMeterTests
     environment:
       name:  'TEST'
@@ -176,6 +182,18 @@ stages:
             inputs:
               jmeterVersion: '5.2.1'
           - task: Bash@3
+            displayName: StressTest
+            inputs:
+              targetType: 'inline'
+              script: |
+                #! /bin/bash
+
+                cd $(Pipeline.Workspace)/automatedtest-artifact
+                unzip -o automatedtest-$(Build.BuildId).zip
+                cd jmeter
+
+                jmeter -n -t stress-test.jmx -Jresdir=input-data.csv -l output-data.csv -e -f -o stress-test-html-report
+          - task: Bash@3
             displayName: EnduranceTest
             inputs:
               targetType: 'inline'
@@ -186,5 +204,5 @@ stages:
                 unzip -o automatedtest-$(Build.BuildId).zip
                 cd jmeter
 
-                jmeter -n -t Starter.jmx
+                jmeter -n -t endurance-test.jmx -Jresdir=input-data.csv -l output-data.csv -e -f -o stress-test-html-report
                 
