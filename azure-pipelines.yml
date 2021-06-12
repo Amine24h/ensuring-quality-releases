@@ -64,7 +64,7 @@ stages:
 
 - stage: Deployment
   jobs:
-  - deployment: FakeRestAPI
+  - deployment: DeployFakeRestAPI
     pool:
       vmImage: 'Ubuntu-16.04'
     environment: 'TEST'
@@ -89,6 +89,7 @@ stages:
         deploy:
           steps:
           - task: Bash@3
+            displayName: Install test tools
             inputs:
               targetType: 'inline'
               script: |
@@ -133,8 +134,16 @@ stages:
         displayName: Run newman api test
         continueOnError: true
         inputs:
-          script: 'newman run StarterAPIs.json'
+          script: 'newman run regression-validation-test-suite.postman_collection.json -e regression-validation-test-environment.postman_environment.json --reporters cli,junit --reporter-junit-export log/regression-validation-test.xml --suppress-exit-code'
           workingDirectory: '$(System.DefaultWorkingDirectory)/automatedtesting/postman'
+      - task: PublishTestResults@2
+        displayName: 'Publish Newman test results'
+        inputs:
+          testRunner: 'JUnit'
+          searchFolder: '$(System.DefaultWorkingDirectory)/automatedtesting/postman/log'
+          testResultsFiles: '*.xml'
+          mergeTestResults: true
+          testRunTitle: 'Publish Newman test results'
   - deployment: SeleniumTests
     environment:
       name:  'TEST'
